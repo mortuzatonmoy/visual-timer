@@ -10,7 +10,7 @@
 <body><header><div class="brand"><span class="mark" aria-hidden="true">◴</span>Interval</div><span class="micro">Silent timekeeper</span></header>
 <main><div class="intro"><h1>Visual timer</h1><span id="status" role="status" class="badge">Ready</span></div>
 <section class="panel" aria-label="Countdown"><div class="micro">Time remaining</div><div class="display" role="timer" id="display">25:00</div><div class="scale" aria-hidden="true"><i id="bar"></i></div><div class="micro ends"><span>00:00</span><span id="total">25:00</span></div></section>
-<form class="settings" id="form"><div class="inputs"><label>Minutes<input id="min" type="number" min="0" max="999" step="1" value="25" required></label><label>Seconds<input id="sec" type="number" min="0" max="59" step="1" value="0" required></label></div>
+<form class="settings" id="form"><div class="inputs"><label>Minutes<input id="min" type="number" min="0" max="999" step="1" value="25" placeholder="0"></label><label>Seconds<input id="sec" type="number" min="0" max="59" step="1" value="0" placeholder="0"></label></div>
 <div class="buttons"><button class="primary" id="action">Start timer</button><button type="button" id="reset">Reset</button></div></form>
 <p>Keep this tab open. When time is up, its title flashes and the page pulses until you reset it.</p><footer><span>Interval</span><span>Visual alerts · Sound off</span></footer></main>
 <script>
