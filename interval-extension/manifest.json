@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Interval · Alerts across tabs",
+  "version": "1.0.0",
+  "description": "Show a silent timer alert on ordinary webpages in this browser.",
+  "permissions": ["storage"],
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["alerts.js"],
+    "run_at": "document_idle"
+  }]
+}
