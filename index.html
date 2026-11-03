@@ -12,6 +12,8 @@
 <section class="panel" aria-label="Countdown"><div class="micro">Time remaining</div><div class="display" role="timer" id="display">25:00</div><div class="scale" aria-hidden="true"><i id="bar"></i></div><div class="micro ends"><span>00:00</span><span id="total">25:00</span></div></section>
 <form class="settings" id="form"><div class="inputs"><label>Minutes<input id="min" type="number" min="0" max="999" step="1" value="25" placeholder="0"></label><label>Seconds<input id="sec" type="number" min="0" max="59" step="1" value="0" placeholder="0"></label></div>
 <div class="buttons"><button class="primary" id="action">Start timer</button><button type="button" id="reset">Reset</button></div></form>
+<div style="margin-top:16px"><button type="button" id="float" hidden>Show timer over other tabs ↗</button></div>
+<p id="floatHint" role="status"></p><p id="extensionHint">For a large alert directly on other webpages, <a href="https://github.com/mortuzatonmoy/visual-timer/tree/main/interval-extension">set up the Edge extension</a>.</p>
 <p>Keep this tab open. When time is up, its title flashes and the page pulses until you reset it.</p><footer><span>Interval</span><span>Visual alerts · Sound off</span></footer></main>
 <script>
 'use strict';
@@ -27,6 +29,40 @@ function clock(ms){
 function favicon(color){
   byId('icon').href='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="'+color+'"/><path d="M16 5v11h9" stroke="white" stroke-width="3" fill="none"/></svg>');
 }
+let floating = null;
+function syncOtherTabs() {
+  const end = phase === 'running' || phase === 'expired' ? String(deadline) : '';
+  if (document.documentElement.dataset.intervalDeadline !== end) {
+    document.documentElement.dataset.intervalDeadline = end;
+    document.dispatchEvent(new Event('interval-schedule'));
+  }
+  if (floating && !floating.closed) {
+    floating.document.body.className = document.body.className;
+    floating.document.getElementById('caption').textContent = byId('status').textContent;
+    floating.document.getElementById('count').textContent = byId('display').textContent;
+  }
+}
+function showConnection() {
+  if (document.documentElement.dataset.intervalExtension === 'on')
+    byId('extensionHint').textContent = 'Alerts on other webpages are enabled in this browser.';
+}
+document.addEventListener('interval-connected',showConnection);
+showConnection();
+const floatButton = byId('float');
+floatButton.hidden = !window.documentPictureInPicture;
+floatButton.onclick = async () => {
+  try {
+    if (floating && !floating.closed) {floating.focus();return}
+    floating = await window.documentPictureInPicture.requestWindow({width:320,height:180});
+    floating.document.title = 'Interval';
+    floating.document.head.append(document.querySelector('style').cloneNode(true));
+    floating.document.body.style.cssText = 'display:grid;place-content:center;text-align:center;min-height:100vh';
+    floating.document.body.innerHTML = '<span class="micro" id="caption"></span><strong style="font:600 clamp(32px,20vw,74px) system-ui" id="count"></strong>';
+    byId('floatHint').textContent = 'The floating timer stays visible over your other tabs.';
+    floating.addEventListener('pagehide',()=>{floating=null;byId('floatHint').textContent='';},{once:true});
+    syncOtherTabs();
+  } catch {byId('floatHint').textContent = 'The floating window could not open. Try again from the timer tab.';}
+};
 function render(){
   const valid=min.validity.valid&&sec.validity.valid&&duration()>0;
   const total=valid?duration():0;
@@ -40,6 +76,7 @@ function render(){
   byId('status').textContent={ready:'Ready',running:'Running',paused:'Paused',expired:"Time’s up!"}[phase];
   document.body.classList.toggle('expired',phase==='expired');
   document.title=phase==='expired'?(bright?"⏰ TIME’S UP!":title):phase==='ready'?title:clock(ms)+' · '+phase+' · Interval';
+  syncOtherTabs();
 }
 function tick(){
   clearTimeout(job);
