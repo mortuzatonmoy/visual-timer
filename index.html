@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Interval — Visual timer</title>
+<link id="icon" rel="icon">
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#f6f5ee;color:#263c33;font-family:system-ui,sans-serif}header,footer{display:flex;justify-content:space-between;align-items:center;padding:18px 0;border-bottom:1px solid #cad0c4}header{max-width:1050px;margin:auto;width:90%}.brand{display:flex;align-items:center;gap:10px;font: bold 27px Georgia,serif}.mark{background:#234738;color:#dbeaa9;border-radius:50%;width:33px;height:33px;display:grid;place-items:center;font:24px Georgia}.micro,footer,label,.badge{font:600 11px/1.5 ui-monospace,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase}.micro,footer{color:#546457}main{max-width:680px;margin:clamp(32px,7vh,78px) auto;padding:0 18px}.intro{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}h1{font:normal clamp(36px,6vw,58px)/1.08 Georgia,serif;letter-spacing:-.055em;margin:0}.badge{border:1px solid #bfc8b7;padding:5px 11px;border-radius:20px}.badge:before{content:"";display:inline-block;width:7px;height:7px;background:#648448;border-radius:50%;margin-right:7px}.panel{background:#203e32;color:#f6f6dd;padding:clamp(20px,5vw,42px);border-radius:19px}.panel .micro{color:#c4d5b8}.display{text-align:center;font:500 clamp(60px,15vw,120px)/1.5 system-ui,sans-serif;letter-spacing:-.065em;font-variant-numeric:tabular-nums}.scale{height:18px;background:repeating-linear-gradient(90deg,#587064 0 2px,transparent 2px 10px);position:relative}.scale i{display:block;height:100%;width:100%;background:repeating-linear-gradient(90deg,#c9e88e 0 2px,transparent 2px 10px)}.ends{display:flex;justify-content:space-between;margin-top:8px}.settings{padding:24px 0 0}.inputs,.buttons{display:flex;gap:12px}.inputs label{flex:1}input,button{font:inherit}input{display:block;width:100%;margin:6px 0 16px;padding:9px 12px;background:#fffef8;border:1px solid #b8c1b4;border-radius:7px;font:21px system-ui;color:inherit}button{cursor:pointer;border:1px solid #aab5a6;border-radius:8px;background:transparent;color:inherit;padding:13px 22px;font-weight:600}.primary{flex:1;background:#cce99a;border-color:#b6cf8f}.primary:hover{background:#bbdf80}button:disabled{opacity:.5;cursor:default}:focus-visible{outline:3px solid #558143;outline-offset:3px}p{font-size:14px;line-height:1.6;color:#536456}footer{margin-top:32px;border-top:1px solid #cad0c4;border-bottom:0}.expired{background:#ffd5c5;animation:pulse 3s ease-in-out infinite}.expired .panel{background:#782e27}.expired .badge:before{background:#a73325}@keyframes pulse{50%{background:#ffac99}}@media(prefers-reduced-motion:reduce){.expired{animation:none}}@media(max-width:420px){header{width:92%}.badge{font-size:9px}.panel{padding:18px}}
+</style></head>
+<body><header><div class="brand"><span class="mark" aria-hidden="true">◴</span>Interval</div><span class="micro">Silent timekeeper</span></header>
+<main><div class="intro"><h1>Visual timer</h1><span id="status" role="status" class="badge">Ready</span></div>
+<section class="panel" aria-label="Countdown"><div class="micro">Time remaining</div><div class="display" role="timer" id="display">25:00</div><div class="scale" aria-hidden="true"><i id="bar"></i></div><div class="micro ends"><span>00:00</span><span id="total">25:00</span></div></section>
+<form class="settings" id="form"><div class="inputs"><label>Minutes<input id="min" type="number" min="0" max="999" step="1" value="25" required></label><label>Seconds<input id="sec" type="number" min="0" max="59" step="1" value="0" required></label></div>
+<div class="buttons"><button class="primary" id="action">Start timer</button><button type="button" id="reset">Reset</button></div></form>
+<p>Keep this tab open. When time is up, its title flashes and the page pulses until you reset it.</p><footer><span>Interval</span><span>Visual alerts · Sound off</span></footer></main>
+<script>
+'use strict';
+const byId=id=>document.getElementById(id);
+const min=byId('min'),sec=byId('sec'),action=byId('action');
+const title=document.title;
+let phase='ready', deadline=0, remaining=0, job=0, bright=true;
+const duration=()=> (Number(min.value)*60+Number(sec.value))*1000;
+function clock(ms){
+  const seconds=Math.ceil(ms/1000);
+  return [Math.floor(seconds/60),seconds%60].map(n=>String(n).padStart(2,'0')).join(':');
+}
+function favicon(color){
+  byId('icon').href='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="'+color+'"/><path d="M16 5v11h9" stroke="white" stroke-width="3" fill="none"/></svg>');
+}
+function render(){
+  const valid=min.validity.valid&&sec.validity.valid&&duration()>0;
+  const total=valid?duration():0;
+  const ms=phase==='ready'?total:remaining;
+  byId('display').textContent=clock(ms);
+  byId('total').textContent=clock(total);
+  byId('bar').style.width=(total?Math.min(100,100*ms/total):0)+'%';
+  min.disabled=sec.disabled=phase!=='ready';
+  action.disabled=phase==='ready'&&!valid;
+  action.textContent={ready:'Start timer',running:'Pause',paused:'Resume',expired:'Dismiss alert'}[phase];
+  byId('status').textContent={ready:'Ready',running:'Running',paused:'Paused',expired:"Time’s up!"}[phase];
+  document.body.classList.toggle('expired',phase==='expired');
+  document.title=phase==='expired'?(bright?"⏰ TIME’S UP!":title):phase==='ready'?title:clock(ms)+' · '+phase+' · Interval';
+}
+function tick(){
+  clearTimeout(job);
+  if(phase==='running'){
+    remaining=Math.max(0,deadline-Date.now());
+    if(remaining===0){phase='expired';bright=true;favicon('#c33824')}
+    else job=setTimeout(tick,remaining%1000||1000);
+  }
+  if(phase==='expired'){
+    job=setTimeout(()=>{bright=!bright;tick()},1200);
+  }
+  render();
+}
+function reset(){
+  clearTimeout(job);phase='ready';remaining=0;favicon('#284a38');render();
+}
+byId('form').onsubmit=e=>{
+  e.preventDefault();
+  if(phase==='expired'){reset();return}
+  if(phase==='running'){tick();if(phase==='expired')return;clearTimeout(job);phase='paused';render();return}
+  if(phase==='ready')remaining=duration();
+  if(!(remaining>0))return;
+  deadline=Date.now()+remaining;phase='running';tick();
+};
+byId('form').oninput=render;byId('reset').onclick=reset;
+document.addEventListener('visibilitychange',tick);window.addEventListener('pageshow',tick);reset();
+</script></body></html>
